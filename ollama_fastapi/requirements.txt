@@ -39,6 +39,7 @@ MarkupSafe==3.0.3
 matplotlib-inline==0.2.1
 mdurl==0.1.2
 multidict==6.7.0
+ollama==0.6.1
 openai==2.14.0
 parso==0.8.5
 pexpect==4.9.0
