@@ -7,7 +7,7 @@ import json
 load_dotenv()
 
 client= OpenAI (
-    api_key="AIzaSyBMUuBGS9q-YLAkVTtPctKA7YxtT7v0hX4",
+    api_key="",
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
@@ -42,25 +42,57 @@ SYSTEM_PROMPT="""
         OUTPUT:{ "step":"OUTPUT" : "content" : "3.5"}
 
     """
-    
-response= client.chat.completions.create(
-        model="gemini-2.5-flash",
-        response_format={"type":"json_object"},
-        messages=[
-          {"role": "system", "content": SYSTEM_PROMPT },
-          { "role": "user", "content": "hey there, can you give me the code to add n numbers in python?"},
-          #manually keep adding messages to the history
-          {"role": "assistant", "content": json.dumps({
-    "step": "START",
-    "content": "hey there, can you give me the code to add n numbers in python?"  
-})},
-          {"role": "assistant", "content": json.dumps({
-    "step": "PLAN", "content": "The user wants Python code to add 'n' numbers. I should provide a function that takes a variable number of arguments or a list of numbers and returns their sum." 
-})},
-          {"role": "assistant", "content": json.dumps({"step": "PLAN", "content": "I will provide a Python function that demonstrates how to add 'n' numbers. I will use the built-in `sum()` function for an efficient and Pythonic solution, explaining how it works with a list of numbers."
-})}
-        ]
-)
+print("\n\n\n\n")
+message_history =[
+    { "role":"system", "content": SYSTEM_PROMPT },
+]
 
-print(response.choices[0].message.content)
+user_query = input("👍🏼")
+message_history.append({"role":"user","content":user_query})
+
+while True:
+    response = client.chat.completions.create(
+        model="gemini-2.5-flash",
+        response_format= {"type": "json_object"},
+        messages=message_history
+    )
+    
+    raw_result =(response.choices[0].message.content)
+    message_history.append({"role":"assistant", "content": raw_result})
+    
+    parsed_result = json.loads(raw_result)
+    
+    if  parsed_result.get("step") == "START":
+        print("🔥", parsed_result.get("content"))
+        continue
+    
+    if parsed_result.get("step") == "PLAN":
+        print("💭", parsed_result.get("content"))
+        continue
+    if parsed_result.get("step") == "OUTPUT":
+        print("🤖", parsed_result.get("content"))
+        break
+print("\n\n\n\n")
+
+    
+# response= client.chat.completions.create(
+#         model="gemini-2.5-flash",
+#         response_format={"type":"json_object"},
+#         messages=[
+#           {"role": "system", "content": SYSTEM_PROMPT },
+#           { "role": "user", "content": "hey there, can you give me the code to add n numbers in python?"},
+#           #manually keep adding messages to the history
+#           {"role": "assistant", "content": json.dumps({
+#     "step": "START",
+#     "content": "hey there, can you give me the code to add n numbers in python?"  
+# })},
+#           {"role": "assistant", "content": json.dumps({
+#     "step": "PLAN", "content": "The user wants Python code to add 'n' numbers. I should provide a function that takes a variable number of arguments or a list of numbers and returns their sum." 
+# })},
+#           {"role": "assistant", "content": json.dumps({"step": "PLAN", "content": "I will provide a Python function that demonstrates how to add 'n' numbers. I will use the built-in `sum()` function for an efficient and Pythonic solution, explaining how it works with a list of numbers."
+# })}
+#         ]
+# )
+
+# print(response.choices[0].message.content)
 
