@@ -28,6 +28,7 @@ pip-wheel-metadata/
 MANIFEST
 
 # Virtual Environment
+venv
 venv/
 env/
 .venv/
