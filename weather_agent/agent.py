@@ -2,7 +2,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import json
 import requests
-
+from pydantic import BaseModel, Field
+from typing import Optional
 load_dotenv()
 
 client = OpenAI()
@@ -68,42 +69,51 @@ SYSTEM_PROMPT="""
     """
     
 print("\n\n\n\n")
+
+class MyOutputFormat(BaseModel):
+    step: str= Field(..., description="The ID of the step. Example : PLAN, OUTPUT, TOOL")
+    content: Optional[str]= Field(None, description="The optional string content")
+    tool: Optional[str]=Field(None, description="The id of the tool to call")
+    input: Optional[str]=Field(None, description="The input params for the tool")
+
+
+
 message_history =[
     { "role":"system", "content": SYSTEM_PROMPT },
 ]
-
-user_query = input("👍🏼")
-message_history.append({"role":"user","content":user_query})
-
 while True:
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        response_format= {"type": "json_object"},
-        messages=message_history
-    )
-    
-    raw_result =(response.choices[0].message.content)
-    message_history.append({"role":"assistant", "content": raw_result})
-    
-    parsed_result = json.loads(raw_result)
-    
-    if  parsed_result.get("step") == "START":
-        print("🔥", parsed_result.get("content"))
-        continue
-    if parsed_result.get("step") == "TOOL":
-        tool_to_call = parsed_result.get("tool")
-        tool_input = parsed_result.get("input")
-        print(f" 🔨: {tool_to_call}({tool_input})")
+    user_query = input("👍🏼")
+    message_history.append({"role":"user","content":user_query})
+
+    while True:
+        response = client.chat.completions.parse(
+            model="gpt-4o",
+            response_format= MyOutputFormat,
+            messages=message_history
+        )
         
-        tool_response = available_tools[tool_to_call](tool_input)
-        print(f"🔨: {tool_to_call}({tool_input}) = {tool_response}")
-        message_history.append ({ "role": "developer", "content": json.dumps( { "step" : "OBSERVE", "tool": tool_to_call ,     "input": tool_input , "output": tool_response } ) })
-        continue
+        raw_result =(response.choices[0].message.content)
+        message_history.append({"role":"assistant", "content": raw_result})
         
-    if parsed_result.get("step") == "PLAN":
-        print("💭", parsed_result.get("content"))
-        continue
-    if parsed_result.get("step") == "OUTPUT":
-        print("🤖", parsed_result.get("content"))
-        break
-print("\n\n\n\n")
+        parsed_result = response.choices[0].message.parsed
+        
+        if  parsed_result.step == "START":
+            print("🔥", parsed_result.content)
+            continue
+        if parsed_result.step == "TOOL":
+            tool_to_call = parsed_result.tool
+            tool_input = parsed_result.input
+            print(f" 🔨: {tool_to_call}({tool_input})")
+            
+            tool_response = available_tools[tool_to_call](tool_input)
+            print(f"🔨: {tool_to_call}({tool_input}) = {tool_response}")
+            message_history.append ({ "role": "developer", "content": json.dumps( { "step" : "OBSERVE", "tool": tool_to_call ,     "input": tool_input , "output": tool_response } ) })
+            continue
+            
+        if parsed_result.step == "PLAN":
+            print("💭", parsed_result.content)
+            continue
+        if parsed_result.step == "OUTPUT":
+            print("🤖", parsed_result.content)
+            break
+    print("\n\n\n\n")
