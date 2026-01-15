@@ -7,7 +7,7 @@ client = OpenAI()
 
 def main():
     user_query= input("> ")
-    client.completions.create(
+    response= client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "user", "content": user_query}
@@ -15,4 +15,5 @@ def main():
     )
     print( f"::{response.choices[0].message.content }")
     
-    main()
+
+main()
